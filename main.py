@@ -106,9 +106,9 @@ for i in range(len(users)):
                 currRecording = currMeeting['recording_files'][k]
                 #some recording files are just audio, so we want to ensure we're only downloading the videos
                 #print currRecording
-            
-                if currRecording['file_type'] != 'MP4':
-                    continue
+                #uncomment the following if statement if you want to download only mp4 files
+#                 if currRecording['file_type'] != 'MP4':
+#                     continue
 
                 #we finally  get to the code where we start donwloading
                 filename = meetingName + '-' + str(k+1) + '.' + currRecording['file_type']
