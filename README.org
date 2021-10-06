@@ -1,6 +1,6 @@
 * Initial Setup
 ** Open Terminal, go into folder where you want the recordings to be downloaded 
-** Run "git clone https://github.com/pacqu/ZoomCloudRecordingDownloader.git"
+** Run "git clone https://github.com/sharedstudios/ZoomCloudRecordingDownloader.git"
 ** Run "cd ZoomCloudRecordingDownloader"
 ** Create or Copy/Paste a text file called "api.txt" into this folder, where: 
 *** The First Line is your API Key
