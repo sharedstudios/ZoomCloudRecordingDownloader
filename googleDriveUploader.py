@@ -52,7 +52,7 @@ def uploadFile(fileName, folderName):
     print("Uploaded to Google Drive")
 
 # uploadFile('40138.jpeg', 'maria')
-# zoom recordings id = 1M6sMgwAx1UJgKB8OijRvgd8hTRMT5qoM
+# sample folder id = 1M6sMgwAx1UJgKB8OijRvgd8hTRMT5qoM
 
 def getFolderId():
     file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
