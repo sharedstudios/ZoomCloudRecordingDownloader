@@ -18,7 +18,20 @@ def containsFile(title):
     #check if drive contains file or not
     query = f"title = '{title}'"
     file_list = drive.ListFile({'q': query}).GetList()
+    # print(file_list)
     return len(file_list) != 0
+
+
+def lookupFileId(title):
+    # return file id given filename
+    if(not containsFile(title)):
+        return
+    query = f"title = '{title}'"
+    file_list = drive.ListFile({'q': query}).GetList()
+    for file in file_list:
+        return file['id']
+    # assuming the filename is never repeatable
+
 
 def containsFolder(folderName):
     folders = drive.ListFile({'q': "title='" + folderName + "' and trashed=false"}).GetList()
@@ -55,6 +68,26 @@ def uploadFile(fileName, folderName):
 # sample folder id = 1M6sMgwAx1UJgKB8OijRvgd8hTRMT5qoM
 
 def getFolderId():
-    file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+    folderIdList = []
+    file_list = drive.ListFile({'q': "'1M6sMgwAx1UJgKB8OijRvgd8hTRMT5qoM' in parents and trashed=false"}).GetList()
     for file1 in file_list:
+        folderIdList.append(file1['id'])
         print('title: %s, id: %s' % (file1['title'], file1['id']))
+    return folderIdList
+
+def getFileIds(folderId):
+    fileIdList = []
+    file_list = drive.ListFile({'q': f"{folderId} in parents and trashed=false"}).GetList()
+    for file1 in file_list:
+        fileIdList.append(file1['id'])
+        print('title: %s, id: %s' % (file1['title'], file1['id']))
+    return fileIdList
+
+def updateFileName(fileId, newName):
+    a = drive.auth.service.files().get(fileId=fileId).execute()
+    a['title'] = newName
+    update = drive.auth.service.files().update(fileId=fileId, body=a).execute()
+    print("Updated file name to " + newName)
+    return update
+
+# print(lookupFileId("AfricaCenterPortalsZoomMeeting-2019-01-08T161127Z-1.M4A"))
