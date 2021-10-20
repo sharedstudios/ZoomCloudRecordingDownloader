@@ -1,5 +1,7 @@
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+from urllib.error import HTTPError
+import time
 
 fl = open('api.txt', 'r')
 apis = fl.readlines()
@@ -9,7 +11,26 @@ zoomRecordingsFolderId = apis[6].replace("\n", "")
 # place google drive api client_secrets.json under same directory
 
 gauth = GoogleAuth()
-gauth.LocalWebserverAuth()
+# Try to load saved client credentials
+gauth.LoadCredentialsFile("mycreds.txt")
+if gauth.credentials is None:
+    # Authenticate if they're not there
+    gauth.GetFlow()
+    gauth.flow.params.update({'access_type': 'offline'})
+    gauth.flow.params.update({'approval_prompt': 'force'})
+
+    gauth.CommandLineAuth()
+    # gauth.LocalWebserverAuth()
+elif gauth.access_token_expired:
+    # Refresh them if expired
+    gauth.Refresh()
+else:
+    # Initialize the saved creds
+    gauth.Authorize()
+# Save the current credentials to a file
+gauth.SaveCredentialsFile("mycreds.txt")
+
+
 drive = GoogleDrive(gauth)
 
 
@@ -61,7 +82,15 @@ def uploadFile(fileName, folderName):
     print("Uploading file")
     file2 = drive.CreateFile({'parents': [{'id': containsFolder(folderName)}]})
     file2.SetContentFile(fileName)
-    file2.Upload()
+    try:
+        file2.Upload()
+    except HTTPError as e:
+        # if e.code == 403: # google drive api limit 10000 per 100s
+            print("Taking break ... (100s)")
+            time.sleep(100)
+            file2.Upload()
+
+
     print("Uploaded to Google Drive")
 
 # uploadFile('40138.jpeg', 'maria')
@@ -69,6 +98,7 @@ def uploadFile(fileName, folderName):
 
 def getFolderId():
     folderIdList = []
+    # folder id should be root folder's id
     file_list = drive.ListFile({'q': "'1M6sMgwAx1UJgKB8OijRvgd8hTRMT5qoM' in parents and trashed=false"}).GetList()
     for file1 in file_list:
         folderIdList.append(file1['id'])
@@ -89,5 +119,6 @@ def updateFileName(fileId, newName):
     update = drive.auth.service.files().update(fileId=fileId, body=a).execute()
     print("Updated file name to " + newName)
     return update
+
 
 # print(lookupFileId("AfricaCenterPortalsZoomMeeting-2019-01-08T161127Z-1.M4A"))

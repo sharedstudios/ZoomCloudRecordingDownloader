@@ -7,6 +7,10 @@ import sys
 import datetime
 import googleDriveUploader
 
+# CHAT OR TRANSCRIPT
+
+format = "CHAT"
+
 # keeping our api key and api secret off the program file so it's secure
 fl = open('api.txt', 'r')
 apis = fl.readlines()
@@ -35,6 +39,7 @@ def correctFileName(filename):
     return ret
 
 
+
 # had to implement sessions since zoom is annoying and forcing me to login to download their recordings
 session_requests = requests.session()
 signin = "https://zoom.us/signin"
@@ -55,15 +60,10 @@ summary = []
 durationTotal = 0
 userMeetingCount = 0
 
-#
-
-# print(len(users))
-
 # partial upload by user index
-users = users[0:3]
+# users = users[:]
 for user in users:
     print(user)
-# users = users[30:] # upload from 30 to end
 
 # for loop to go through each user in the list
 for i in range(len(users)):
@@ -100,6 +100,8 @@ for i in range(len(users)):
         videolistparams = {'api_key': apiKey, 'api_secret': apiSec, 'data_type': "JSON", 'userId': currID, 'page_size': 300,
                            'from': currentFromStr, 'to': currentToStr}
 
+
+
         # call to retrieve json object cotaining list of user recordings
         while True:
             videolistjson = requests.get(f"https://api.zoom.us/v2/users/{currID}/recordings", headers=headers,
@@ -123,23 +125,24 @@ for i in range(len(users)):
             print('%d Recordings found for User "%s"; Downloading the new recording MP4 Files' % (
             len(currUserMeetings), username))
             # if folder for videos does not exist yet, creates a folder named after username
-            #if not os.path.exists("./" + username):
-                # os.makedirs("./" + username)
+            if not os.path.exists("./transcript"):
+                os.makedirs("./transcript")
 
-            # print username
+
+
             # print " "
 
             # for loop iterates through a meeting object, and we specfically want to contruct the meeting name
             # as well as iterate through recordings of a meeting
             for j in range(len(currUserMeetings)):
                 currMeeting = currUserMeetings[j]
-                print(currMeeting['start_time'])
+                # print(currMeeting['start_time'])
                 meetingName = currMeeting['topic'] + "-" + currMeeting['start_time']
                 meetingName = correctFileName(meetingName)
+
                 # get all meeting ids and their duration
                 summary.append(currMeeting['uuid'] + " " + str(currMeeting['duration']) + '\n')
                 durationTotal += currMeeting['duration']
-
 
                 # a meeting might have multiple recordings, so this code block will iterate through those meetings
                 for k in range(len(currMeeting['recording_files'])):
@@ -149,31 +152,29 @@ for i in range(len(users)):
                     # some recording files are just audio, so we want to ensure we're only downloading the videos
                     # print currRecording
 
-                    # if currRecording['file_type'] != 'MP4':
+                    # if currRecording['file_type'] != 'TRANSCRIPT':
                     #     continue
+
+                    if currRecording['file_type'] != format:
+                        continue
+
 
                     # oldFilename = meetingName + '-' + str(k + 1) + '.' + currRecording['file_type']
                     oldFilename = username + '-' + currRecording['recording_start'][:10] + '-' + currRecording['id'] + '.' + currRecording['file_type']
                     # we finally  get to the code where we start donwloading
+                    username = correctFileName(username)
+                    filename = username + '-' + currRecording['recording_start'][:10] + '-' + currRecording['recording_type']+ '-' + currMeeting['uuid']
 
-                    filename = username + '-' + currRecording['recording_start'][:10] + '-' + currRecording['recording_type']+ '-' + currMeeting['uuid'] + '.' + currRecording['file_type']
-                    filename = correctFileName(filename)
-
-                    # check if the file exist in google drive or not
-
-                    if googleDriveUploader.containsFile(oldFilename) or googleDriveUploader.containsFile(filename):
-                        print(f"Current file already exists in google drive -- {k+1}/{len(currMeeting['recording_files'])}")
-                        fileid = googleDriveUploader.lookupFileId(filename) or googleDriveUploader.lookupFileId(oldFilename)
-                        # print(fileid)
-                        googleDriveUploader.updateFileName(fileid, filename)
-                        continue
 
                     # if recording file is already downloaded, this script won't download it again
                     # this allows us to call this script to download new files after downloading an inital batch
-                    if not os.path.exists(filename):  # to store locally, use ["./" + username + "/" + filename]
+                    filename = correctFileName(filename)
+                    filename +=  '.' + currRecording['file_type']
+                    local_dir = f"./{format.lower()}/"+filename
+                    if not os.path.exists(local_dir):  # to store locally, use ["./" + username + "/" + filename]
                         link = currRecording['download_url']
                         link += "?access_token="+JWTtoken
-                        with open(filename, "wb") as f:
+                        with open(local_dir, "wb") as f:
                             print("Downloading %s" % filename)
                             response = session_requests.get(link, stream=True)
                             # total_length = response.headers.get('file_size')
@@ -194,12 +195,12 @@ for i in range(len(users)):
                                     sys.stdout.flush()
                                 print(" Finished Downloading %s" % filename + f" {k+1} / {len(currMeeting['recording_files'])}")
                                 # upload file to google drive
-                                print(f.name)
+                                # print(f.name)
 
                                 # comment the following 2 lines if you only want to download them locally
-                                googleDriveUploader.uploadFile(f.name, correctFileName(username))
+                                # googleDriveUploader.uploadFile(f.name, correctFileName(username))
                                 # delete local file
-                                os.remove(f.name)
+                                # os.remove(f.name)
                     else:
                         print("Already Downloaded %d.%d out of %d" % (j + 1, k + 1, len(currUserMeetings)))
 
@@ -212,17 +213,17 @@ for i in range(len(users)):
 
         currentTo = currentFrom
         currentFrom -= datetime.timedelta(weeks=4)
-    summary.append('*' * 5 + " " + str(i + 1) + " " + username + ' *' * 5 + str(userMeetingCount) + " meetings" + '\n')
+
+    summary.append('*' * 5 + " " + str(i+1) + " "+ username + ' * ' * 5 + str(userMeetingCount) + " meetings"  + '\n')
     userMeetingCount = 0
 
         # print username
 
 print('*' * 15)
-print(len(summary))
+print(len(summary)-1)
 print('*' * 15)
 print(durationTotal)
-sumFile = open("summary1.txt", 'w')
+
+sumFile = open("summary.txt", 'w')
 sumFile.writelines(summary)
 sumFile.writelines(['---------', "Total meeting count " + str(len(summary)-1), " / Total duration " + str(durationTotal)])
-
-    # print username
