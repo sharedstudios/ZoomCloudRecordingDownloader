@@ -7,9 +7,10 @@ import sys
 import datetime
 import googleDriveUploader
 
+
 # CHAT OR TRANSCRIPT
 
-format = "CHAT"
+format = "TRANSCRIPT"
 
 # keeping our api key and api secret off the program file so it's secure
 fl = open('api.txt', 'r')
@@ -28,7 +29,7 @@ JWTtoken= apis[4].replace("\n", "")
 def correctFileName(filename):
     ret = filename.lower()
     illegalFirstChars = [' ', '.', '_', '-']
-    illegalChars = ['#', '%', '&', '{', '}', '\\', '<', '>', '*', '?', '/', ' ', '$', '!', "'", '"', ':', '@', '.', "'"]
+    illegalChars = ['#', '%', '&', '{', '}', '\\', '<', '>', '*', '?', '/',  '$', '!', "'", '"', ':', '@', '.', "'"]
     for index in range(len(filename)):
         if not filename[index] in illegalFirstChars:
             ret = filename[index:]
@@ -36,9 +37,8 @@ def correctFileName(filename):
 
     for char in illegalChars:
         ret = ret.replace(char, "")
+
     return ret
-
-
 
 # had to implement sessions since zoom is annoying and forcing me to login to download their recordings
 session_requests = requests.session()
@@ -59,6 +59,7 @@ users = userlistjson['users']
 summary = []
 durationTotal = 0
 userMeetingCount = 0
+
 
 # partial upload by user index
 # users = users[:]
@@ -141,7 +142,7 @@ for i in range(len(users)):
                 meetingName = correctFileName(meetingName)
 
                 # get all meeting ids and their duration
-                summary.append(currMeeting['uuid'] + " " + str(currMeeting['duration']) + '\n')
+                summary.append(currMeeting['uuid'] + " " + str(currMeeting['duration']) + ' min \n')
                 durationTotal += currMeeting['duration']
 
                 # a meeting might have multiple recordings, so this code block will iterate through those meetings
@@ -214,7 +215,7 @@ for i in range(len(users)):
         currentTo = currentFrom
         currentFrom -= datetime.timedelta(weeks=4)
 
-    summary.append('*' * 5 + " " + str(i+1) + " "+ username + ' * ' * 5 + str(userMeetingCount) + " meetings"  + '\n')
+    summary.append('*' * 5 + " " + str(i+1) + " "+ username + ' *' * 5 + " " + str(userMeetingCount) + " meetings"  + '\n')
     userMeetingCount = 0
 
         # print username
@@ -226,4 +227,4 @@ print(durationTotal)
 
 sumFile = open("summary.txt", 'w')
 sumFile.writelines(summary)
-sumFile.writelines(['---------', "Total meeting count " + str(len(summary)-1), " / Total duration " + str(durationTotal)])
+sumFile.writelines(['---------', "Total meeting count " + str(len(summary)-1), " / Total duration " + str(durationTotal), " ->>", str(durationTotal//60), " hours"])

@@ -42,8 +42,11 @@ def filterChat(chatContent):
 
 def insertRow(table, column, data):
   col = '('+ ",".join(column) + ')'
-  # val = '( SELECT"'+ '","'.join(data) + '")'
-  val = f"('{data[0]}', '{data[1]}', '{data[2]}', '{data[3]}', '{data[4]}' )"
+  val = "("
+  for d in data:
+    val += "'" + str(d) + "', "
+  val = val[:-2]
+  val += ")"
 
   # command = f'''INSERT INTO {table} {col}
   #               SELECT * FROM {val} AS tmp
@@ -51,10 +54,9 @@ def insertRow(table, column, data):
   #                 SELECT {column[0]} FROM {table} WHERE {column[0]} = "{data[0]}"
   #               ) LIMIT 1;'''
 
-  # print(command)
-
   command = f"INSERT INTO {table} {col} values {val}; "
-  print(command)
+  # print(command)
+  print(f"Inserting {data[0]} to {table} database table")
   mycursor.execute(command)
   mydb.commit()
 
@@ -81,6 +83,13 @@ def printContent(table):
   for line in mycursor:
     print(line)
   print('-' * 10)
+
+def updateTable(table, column, val, critId):
+  val = val.replace("'", "''").replace('"', '')
+  command = f'''UPDATE {table} SET {column} = "{val}" WHERE meetingId = "{critId}";'''
+  print(command)
+  mycursor.execute(command)
+  mydb.commit()
 
 
 if __name__ == "__main__":

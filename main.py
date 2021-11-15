@@ -60,12 +60,13 @@ userMeetingCount = 0
 # print(len(users))
 
 # partial upload by user index
-users = users[0:3]
+# users = users[0:3]
 for user in users:
     print(user)
 # users = users[30:] # upload from 30 to end
 
 # for loop to go through each user in the list
+# users = 
 for i in range(len(users)):
 
     # this retireves user that is currently being looked at and relevant info
@@ -77,11 +78,12 @@ for i in range(len(users)):
     # user id needed to pass to api call
     currID = currUser['id']
     # earliest event date
-    firstDate = datetime.date(2014, 1, 1)
+    # firstDate = datetime.date(2014, 1, 1)
+    # updated date
+    firstDate = datetime.date(2021, 10, 1)
     # current range of to date
     currentTo = datetime.date.today()
     # current range of from date
-    # currentTo = datetime.date(2018, 2, 1)
     currentFrom = currentTo - datetime.timedelta(weeks=4)
 
     # download the monthly recording until the first date of the events
