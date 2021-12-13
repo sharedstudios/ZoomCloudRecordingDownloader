@@ -1,0 +1,113 @@
+import mysql.connector
+import main as lda
+import openpyxl as xl
+import asyncio
+
+mydb = mysql.connector.connect(
+  host="recordings1.cu9plsuquxf7.us-east-1.rds.amazonaws.com",
+  user="admin",
+  password="sharedstudios",
+  database="zoomRecordingsDB"
+)
+
+mycursor = mydb.cursor(buffered=True)
+
+# Ensure Doha's details are at the top of the report
+
+dohaHostId = 'host_id: FF8xhM81RPSqM2_XcjPDng'
+getFilteredDetailCmd = 'select meetingDetail from recordings where filtered_transcript <> "";'
+getDohaCmd = """SELECT meetingDetail FROM recordings WHERE meetingDetail LIKE '%host_id: FF8xhM81RPSqM2_XcjPDng%';"""
+getTranscriptCmd = 'select filtered_transcript from recordings where filtered_transcript <> "" and meetingId = sample;'
+
+def printContent(table):
+  print('-' * 10)
+  mycursor.execute(f"SELECT * FROM {table};")
+  for line in mycursor:
+    print(line)
+  print('-' * 10)
+
+row = ['Date', 'Meeting Name', "Link to Google Drive", "Topics"]
+
+def getUUid(meetingDetail):
+    """Extract meetingId from meetingDetail string"""
+    try:
+        uuid = meetingDetail.split('uuid: ')[1].split(", id:")[0]
+    except:
+        print(meetingDetail)
+    return uuid
+
+def sortListWithDate(l, keyWord):
+    for i in range(len(l)):
+        l[i] = str(l[i])
+    l = [x for x in l if 'code: 3301' not in x]
+    l.sort(key=lambda x:int(x.split(keyWord)[1][:10].replace("-", "")), reverse=True)
+
+def getMeetingName(meetingDetail):
+    """Extract meetingName from meetingDetail string"""
+    return "id error - id illegal char removed when uploaded to google drive" if 'code: 3301' in meetingDetail else meetingDetail.split('topic: ')[1].split(", type:")[0]
+
+def generateLinkToGoogleDrive(meetingDetail):
+    if 'code: 3301' in meetingDetail:
+        return "https://drive.google.com/drive/search?q="
+    uuid = getUUid(meetingDetail).replace('/', '')
+    return "https://drive.google.com/drive/search?q=" + uuid
+
+def getTrans(uuid):
+    """Retrieve transcript from database"""
+    print(uuid)
+    mycursor.execute(getTranscriptCmd.replace("sample", f"'{uuid}'"))
+    for d in mycursor:
+        d = str(d)
+        return d
+
+def getTopicWithLda(uuid):
+    uuid = uuid.replace('/', '%2F')
+    trans = getTrans(uuid)
+    if trans == None:
+        return "No Transcript or not able to transcribe"
+    scores = lda.myLda(trans)
+    return "\n".join(scores)
+
+
+
+
+if __name__ == "__main__":
+
+    filteredTransDetails = []
+    dohaTransDetail = []
+    details = []
+
+    mycursor.execute(getDohaCmd)
+    for d in mycursor:
+        dohaTransDetail.append(d)
+
+    print(len(dohaTransDetail))
+    mycursor.execute(getFilteredDetailCmd)
+
+    for i in range(100):
+        for d in mycursor:
+            if d in dohaTransDetail:
+                continue
+            details.append(d)
+
+    # sortListWithDate(details, "start_time: ")
+    # sortListWithDate(dohaTransDetail, "start_time: ")
+    details = dohaTransDetail + details
+    details = [x for x in details if '{code: 3301, message: This recording does not exist.}' not in x]
+
+    wb = xl.load_workbook("lda_report.xlsx")
+    ws = wb.active
+    ws.append(row)
+    for d in details[:100]:
+        d = str(d)
+        date = "id error - id illegal char removed when uploading to google drive" if 'code: 3301' in d else d.split("start_time: ")[1][:10]
+        meetingName = getMeetingName(d)
+        link = generateLinkToGoogleDrive(d)
+        topics = getTopicWithLda(getUUid(d))
+        row = [date, meetingName, link, topics]
+        ws.append(row)
+
+    wb.save("lda_report.xlsx")
+    wb.close()
+
+
