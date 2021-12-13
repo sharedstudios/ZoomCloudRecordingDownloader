@@ -1,0 +1,7 @@
+Mysql-connector-python
+Re
+Requests
+Webbrowser
+Pydrive
+urllib3                  1.26.7
+google-auth              
