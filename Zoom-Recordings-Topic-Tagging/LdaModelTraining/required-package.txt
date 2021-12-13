@@ -1,0 +1,5 @@
+Pandas
+Gensim
+Nltk
+numpy
+openpyxl
