@@ -60,10 +60,10 @@ def correctFileName(filename):
 
 # had to implement sessions since zoom is annoying and forcing me to login to download their recordings
 session_requests = requests.session()
-signin = "https://zoom.us/signin"
-values = {'email': em,
-          'password': pas}
-result = session_requests.post(signin, data=values)
+# signin = "https://zoom.us/signin"
+# values = {'email': em,
+#           'password': pas}
+# result = session_requests.post(signin, data=values)
 
 
 # call to retrieve list of zoom users
@@ -98,6 +98,9 @@ for i in range(len(users)):
     currUser = users[i]
     # temp change to only download if general or events
     currUserEmail = currUser['email']
+
+    if currUserEmail != 'general@sharedstudios.com':
+        continue
     # if user has any recordings, this string will be the name of created directory
     username = f"{currUser['first_name']}-{currUser['last_name']}"
     if username == "-":
@@ -105,23 +108,23 @@ for i in range(len(users)):
     # user id needed to pass to api call
     currID = currUser['id']
     # current range of firstDate (date from which you want to start looking for video)
-    firstDate = datetime.date(2024, 1, 1)
+    firstDate = datetime.date(2024, 3, 1)
     # current range of to date (date from which you want to end looking for video)
-    currentTo = datetime.date.today()
+    currentTo = datetime.date(2024, 4, 26)
     # current range of from date
     currentFrom = currentTo - datetime.timedelta(weeks=4)
 
     # download the monthly recording until the first date of the events
     while currentFrom >= firstDate:
 
+        # Waits 1 Second to Prevent Too Many API Calls at once
+        sleep(1)
+
         # convert date obj to string format
         currentFromStr = currentFrom.strftime("%Y-%m-%d")
         currentToStr = currentTo.strftime("%Y-%m-%d")
 
-        print('Checking User "%s[%s]" for recordings' % (username,currUserEmail) + ' from ' + currentFromStr + ' to ' + currentToStr + "---" + str(i+1) + '/' + str(len(users)))
-        # Waits 1 Second to Prevent Too Many API Calls at once
-        sleep(1)
-
+        print('Checking User "%s[%s]" for recordings' % (username,currUserEmail) + ' from ' + currentFromStr + ' to ' + currentToStr + "--- User count:" + str(i+1) + '/' + str(len(users)))
 
         # second set of parameters passed to second api call
         videolistparams = {'api_key': clientId, 'api_secret': clientSec, 'data_type': "JSON", 'userId': currID, 'page_size': 300,
@@ -147,7 +150,12 @@ for i in range(len(users)):
                         "Unknown Error. Please run program again. If problem persists, contact danara@sharedstudios.com")
 
             break
-        currUserMeetings = videolistjson['meetings']
+        
+        if 'meetings' in videolistjson:
+            currUserMeetings = videolistjson['meetings']
+        else:
+            print("meetings does not exist, skip")
+            continue
 
         print(f"{username} has {len(currUserMeetings)} awaiting to be downloaded and uploaded")
         userMeetingCount += len(currUserMeetings)
@@ -178,10 +186,16 @@ for i in range(len(users)):
                 for k in range(len(currMeeting['recording_files'])):
 
                     currRecording = currMeeting['recording_files'][k]
+                    if 'recording_type' in currRecording:
+                        print(f"current recording type: {currRecording['recording_type']}")
+                    else:
+                        print("recording type does not exist, skip")
+                        continue
+                    
                     oldFilename = username + '-' + currRecording['recording_start'][:10] + '-' + currRecording['id'] + '.' + currRecording['file_type']
                     
                     # we finally  get to the code where we start donwloading
-                    filename = username + '-' + currRecording['recording_start'][:10] + '-' + currRecording['recording_type']+ '-' + currMeeting['uuid'] + '.' + currRecording['file_type']
+                    filename = username + '-' + currRecording['recording_start'][:10] + '-' + currRecording['recording_type'] + '-' + currMeeting['uuid'] + '.' + currRecording['file_type']
                     filename = correctFileName(filename)
 
                     # check if the file exist in google drive or not
