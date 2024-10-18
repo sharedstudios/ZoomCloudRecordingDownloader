@@ -1,5 +1,5 @@
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 from urllib.error import HTTPError
 import time
 
@@ -30,10 +30,7 @@ else:
 # Save the current credentials to a file
 gauth.SaveCredentialsFile("mycreds.txt")
 
-
 drive = GoogleDrive(gauth)
-
-
 
 def containsFile(title):
     #check if drive contains file or not
